@@ -5,6 +5,10 @@ x86_64 Linux host. Most of the repository does not. Everything below is
 plain JSON, JavaScript, Python, shell, and markdown, validated end-to-end by
 `./scripts/check.sh` on an ordinary laptop.
 
+You can also *run* OpenPhone without a build host when a release ships
+prebuilt emulator system images — see the fast path in
+[Quickstart](/docs/quickstart).
+
 ## What you can work on
 
 - [`schemas/`](https://github.com/secondly-com/OpenPhone/tree/main/schemas)

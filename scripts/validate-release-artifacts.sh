@@ -15,6 +15,8 @@ Validates a staged release artifact directory before publication:
 - requires SHA256SUMS and ARTIFACTS.md;
 - verifies every SHA-256 entry;
 - runs unzip integrity checks for .zip artifacts;
+- verifies staged prebuilt emulator system-image zips with
+  scripts/verify-prebuilt-emulator-image.sh;
 - rejects obvious private key / signing key file types;
 - scans small text artifacts for common secret markers.
 EOF
@@ -78,6 +80,20 @@ while IFS= read -r artifact; do
   case "$artifact" in
     *.zip)
       unzip -tq "$artifact" >/dev/null
+      ;;
+  esac
+done < <(find "$artifact_dir" -maxdepth 1 -type f | sort)
+
+while IFS= read -r artifact; do
+  name="$(basename "$artifact")"
+  case "$name" in
+    sdk-repo-*-system-images-arm64.zip|sdk-repo-*-system-images-x86_64.zip)
+      image_arch="${name%.zip}"
+      image_arch="${image_arch##*-}"
+      "$root/scripts/verify-prebuilt-emulator-image.sh" \
+        --zip "$artifact" \
+        --arch "$image_arch" \
+        --sha256 "$checksums" >/dev/null
       ;;
   esac
 done < <(find "$artifact_dir" -maxdepth 1 -type f | sort)

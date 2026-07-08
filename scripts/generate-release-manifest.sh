@@ -77,6 +77,10 @@ done < "$tmp_list"
   printf -- '- Verify OTA ZIPs with `unzip -tq <artifact>.zip` before publishing.\n'
   printf -- '- Record `./scripts/verify-tegu-device.sh` output for every Pixel 9a OTA that is published.\n'
   printf -- '- Record hardware smoke-test evidence with `./scripts/smoke-test-tegu-hardware.sh` when ADB shell is usable.\n'
+  if grep -Eq 'sdk-repo-.*-system-images-(arm64|x86_64)\.zip$' "$tmp_list"; then
+    printf -- '- Verify emulator system-image zips with `scripts/verify-prebuilt-emulator-image.sh --zip <artifact> --sha256 SHA256SUMS`.\n'
+    printf -- '- The release lab boot-gates the x86_64 emulator image; arm64 images are structurally verified and boot-validated on Apple Silicon hosts.\n'
+  fi
   printf -- '- Do not publish artifacts containing API keys, private SSH keys, signing keys, or device secrets.\n'
 } > "$manifest"
 

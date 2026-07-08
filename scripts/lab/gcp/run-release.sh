@@ -38,6 +38,11 @@ Options:
   --emulator-timeout <sec>    Emulator boot timeout. Default: 900.
   --emulator-build-goal <g>   Build goals for the emulator smoke image.
                               Default: droid emu_img_zip.
+  --emulator-image-archs <a>  Space-separated emulator image archs built and
+                              staged into the release as
+                              sdk-repo-linux-system-images-<arch>.zip assets.
+                              Default: "arm64 x86_64". Pass "" to publish no
+                              emulator images.
   --skip-emulator-smoke       Build/stage release artifacts without emulator smoke.
   --keep-vm                   Leave VM running for debug.
   -h, --help                  Show this help.
@@ -73,6 +78,7 @@ emulator_arch="x86_64"
 emulator_variant="eng"
 emulator_timeout="900"
 emulator_build_goal="${OPENPHONE_EMULATOR_BUILD_GOAL:-droid emu_img_zip}"
+emulator_image_archs="${OPENPHONE_EMULATOR_IMAGE_ARCHS-arm64 x86_64}"
 skip_emulator_smoke=false
 keep_vm=false
 
@@ -183,6 +189,11 @@ while [[ $# -gt 0 ]]; do
       emulator_build_goal="$2"
       shift 2
       ;;
+    --emulator-image-archs)
+      [[ $# -ge 2 ]] || die "--emulator-image-archs requires a value"
+      emulator_image_archs="$2"
+      shift 2
+      ;;
     --skip-emulator-smoke)
       skip_emulator_smoke=true
       shift
@@ -224,6 +235,13 @@ case "$emulator_variant" in
   *) die "unsupported emulator variant: $emulator_variant" ;;
 esac
 
+for image_arch in $emulator_image_archs; do
+  case "$image_arch" in
+    arm64|x86_64) ;;
+    *) die "unsupported emulator image arch: $image_arch" ;;
+  esac
+done
+
 if [[ "$cache_mode" == "snapshot" && -z "$cache_source_snapshot" ]]; then
   die "--cache-source-snapshot is required when --cache-mode snapshot"
 fi
@@ -245,6 +263,7 @@ mkdir -p "$release_artifact_parent" "$emulator_artifact_parent"
 
 info "GCP release target: name=$name project=$project zone=$zone ref=$ref"
 info "GCP release shape: machine=$machine_type disk=$boot_disk_size/$boot_disk_type cache_mode=$cache_mode"
+info "GCP release emulator images: ${emulator_image_archs:-none}"
 if [[ -n "$cache_source_snapshot" ]]; then
   info "GCP release cache snapshot: $cache_source_snapshot"
 fi
@@ -333,6 +352,7 @@ emulator_arch="${OPENPHONE_EMULATOR_ARCH:-x86_64}"
 emulator_variant="${OPENPHONE_EMULATOR_VARIANT:-eng}"
 emulator_timeout="${OPENPHONE_EMULATOR_TIMEOUT:-900}"
 emulator_build_goal="${OPENPHONE_EMULATOR_BUILD_GOAL:-droid emu_img_zip}"
+emulator_image_archs="${OPENPHONE_EMULATOR_IMAGE_ARCHS:-}"
 
 export OPENPHONE_RELEASE="${OPENPHONE_RELEASE:-bp4a}"
 
@@ -462,16 +482,38 @@ mkdir -p "$release_dir"
   --device "$device" \
   --version "$version" \
   --output-dir "$release_dir"
+
+# Build and stage the prebuilt emulator system images before the manifest is
+# generated so they are covered by SHA256SUMS/ARTIFACTS.md and published as
+# release assets.
+for image_arch in $emulator_image_archs; do
+  OPENPHONE_BUILD_GOAL="$emulator_build_goal" ./scripts/build-emulator.sh \
+    --arch "$image_arch" \
+    --variant "$emulator_variant"
+done
+if [[ -n "$emulator_image_archs" ]]; then
+  ./scripts/stage-emulator-images.sh \
+    --android-dir "$OPENPHONE_ANDROID_DIR" \
+    --version "$version" \
+    --output-dir "$release_dir" \
+    --archs "$emulator_image_archs"
+fi
+
 ./scripts/generate-release-manifest.sh "$version" "$release_dir" "$release_dir"
 ./scripts/validate-release-artifacts.sh "$release_dir"
 
 if [[ "$skip_emulator_smoke" != "1" ]]; then
-  OPENPHONE_BUILD_GOAL="$emulator_build_goal" ./scripts/lab/smoke.sh \
-    --slot "$slot" \
-    --arch "$emulator_arch" \
-    --variant "$emulator_variant" \
-    --timeout "$emulator_timeout" \
+  smoke_args=(
+    --slot "$slot"
+    --arch "$emulator_arch"
+    --variant "$emulator_variant"
+    --timeout "$emulator_timeout"
     --runtime local
+  )
+  case " $emulator_image_archs " in
+    *" $emulator_arch "*) smoke_args+=(--skip-build) ;;
+  esac
+  OPENPHONE_BUILD_GOAL="$emulator_build_goal" ./scripts/lab/smoke.sh "${smoke_args[@]}"
 fi
 REMOTE
 
@@ -499,6 +541,7 @@ remote_command+=" OPENPHONE_EMULATOR_ARCH=$(shell_quote "$emulator_arch")"
 remote_command+=" OPENPHONE_EMULATOR_VARIANT=$(shell_quote "$emulator_variant")"
 remote_command+=" OPENPHONE_EMULATOR_TIMEOUT=$(shell_quote "$emulator_timeout")"
 remote_command+=" OPENPHONE_EMULATOR_BUILD_GOAL=$(shell_quote "$emulator_build_goal")"
+remote_command+=" OPENPHONE_EMULATOR_IMAGE_ARCHS=$(shell_quote "$emulator_image_archs")"
 remote_command+=" OPENPHONE_TEGU_VENDOR_ZIP_URL=$(shell_quote "${OPENPHONE_TEGU_VENDOR_ZIP_URL:-}")"
 remote_command+=" OPENPHONE_TEGU_VENDOR_ZIP_SHA256=$(shell_quote "${OPENPHONE_TEGU_VENDOR_ZIP_SHA256:-}")"
 remote_command+=" OPENPHONE_BUILD_CACHE_DIR=$(shell_quote "${OPENPHONE_BUILD_CACHE_DIR:-}")"

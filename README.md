@@ -117,7 +117,12 @@ live under [schemas](schemas).
 
 ## Quick Start
 
-The fastest way to see OpenPhone running is the SDK phone emulator. On a
+The fastest way to see OpenPhone running is the SDK phone emulator. Releases
+that include prebuilt emulator system images
+(`sdk-repo-linux-system-images-<arch>.zip` on the
+[Releases page](https://github.com/secondly-com/OpenPhone/releases)) need no
+build host at all — see the fast path in
+[docs/quickstart.md](docs/quickstart.md). To build the image yourself on a
 Linux Android build host:
 
 ```bash

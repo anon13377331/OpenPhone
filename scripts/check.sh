@@ -104,6 +104,9 @@ required=(
   scripts/smoke-test-tegu-hardware.sh
   scripts/verify-tegu-device.sh
   scripts/verify-tegu-bootchain.sh
+  scripts/verify-prebuilt-emulator-image.sh
+  scripts/stage-emulator-images.sh
+  scripts/check-emulator-image-tooling.sh
   services/model-broker/README.md
   services/model-broker/devices.example.json
   services/model-broker/deploy/README.md
@@ -1061,6 +1064,7 @@ if grep -R "SPDX-license-identifier-Apache-2.0" \
   exit 1
 fi
 
+"$root/scripts/check-emulator-image-tooling.sh"
 "$root/scripts/check-runtime-protocol.sh"
 "$root/scripts/check-assistant-java.sh"
 

@@ -124,6 +124,7 @@ jobs:
       OPENPHONE_TEGU_VENDOR_ZIP_SHA256: ${{ vars.OPENPHONE_TEGU_VENDOR_ZIP_SHA256 || '' }}
       OPENPHONE_RELEASE_BUILD_GOAL: ${{ vars.OPENPHONE_RELEASE_BUILD_GOAL || 'target-files-package ota_from_target_files' }}
       OPENPHONE_EMULATOR_BUILD_GOAL: ${{ vars.OPENPHONE_EMULATOR_BUILD_GOAL || 'droid emu_img_zip' }}
+      OPENPHONE_EMULATOR_IMAGE_ARCHS: ${{ vars.OPENPHONE_EMULATOR_IMAGE_ARCHS || 'arm64 x86_64' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -225,6 +226,7 @@ jobs:
             --build-goal "${OPENPHONE_RELEASE_BUILD_GOAL}"
             --emulator-arch "$arch"
             --emulator-build-goal "${OPENPHONE_EMULATOR_BUILD_GOAL}"
+            --emulator-image-archs "${OPENPHONE_EMULATOR_IMAGE_ARCHS}"
           )
           if [[ "$cache_mode" == "snapshot" ]]; then
             args+=(--cache-mode snapshot --cache-source-snapshot "$cache_source_snapshot")
@@ -255,6 +257,7 @@ jobs:
             echo "- Cache mode: \`${cache_mode}\`"
             echo "- Cache snapshot: \`${cache_source_snapshot:-none}\`"
             echo "- Emulator gate: \`required\`"
+            echo "- Emulator images staged: \`${OPENPHONE_EMULATOR_IMAGE_ARCHS:-none}\`"
             echo "- Artifact validation: \`passed\`"
             echo "- Artifact directory: \`${staging}\`"
             echo "- Cleanup: \`${cleanup_behavior}\`"

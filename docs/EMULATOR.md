@@ -29,6 +29,39 @@ Choose the target that matches the workstation that will run the UI:
 The build can run in the GCP lab. The lab is the preferred remote path because
 it uses the same warm Android cache and emulator smoke flow as trusted CI.
 
+## Use A Prebuilt Release Image
+
+Releases that include emulator images publish
+`sdk-repo-linux-system-images-arm64.zip` and
+`sdk-repo-linux-system-images-x86_64.zip` on the
+[Releases page](https://github.com/secondly-com/OpenPhone/releases), each
+with a `.sha256` sidecar and an entry in the release `SHA256SUMS`. If the
+release you want has these assets, skip the sync/build sections entirely:
+
+```bash
+./scripts/lab/install-emulator-image.sh \
+  --arch arm64 \
+  --zip https://github.com/secondly-com/OpenPhone/releases/download/<tag>/sdk-repo-linux-system-images-arm64.zip
+```
+
+The installer downloads the sidecar checksum automatically, verifies the
+zip, and installs it under
+`$ANDROID_SDK_ROOT/system-images/android-36.1/lineage/<abi>/`. To validate a
+downloaded zip against the release manifest without installing it:
+
+```bash
+./scripts/verify-prebuilt-emulator-image.sh \
+  --zip sdk-repo-linux-system-images-arm64.zip \
+  --sha256 SHA256SUMS
+```
+
+This checks the SHA-256, the zip integrity, the ABI directory layout, and
+that the packaged `build.prop` really names an OpenPhone SDK phone product.
+The release lab boot-gates the x86_64 image before publishing; arm64 images
+are structurally verified in the release lab and boot-validated on Apple
+Silicon hosts. After installing, continue at
+[Create An AVD](#create-an-avd).
+
 ## Build The Image
 
 From a prepared Linux Android build host:

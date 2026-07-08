@@ -1,16 +1,52 @@
 # Quickstart
 
-The fastest way to see OpenPhone running is the SDK phone emulator. You'll
-build a portable system image on a Linux Android build host, install it into
-a local AVD on your workstation, and boot the OpenPhone UI.
+The fastest way to see OpenPhone running is the SDK phone emulator. Either
+download a prebuilt system image from a GitHub Release, or build one on a
+Linux Android build host. Then install it into a local AVD on your
+workstation and boot the OpenPhone UI.
 
 If you just want to read about the system, jump to
 [Architecture](/docs/ARCHITECTURE). If you want to flash an actual Pixel 9a,
 see [Build](/docs/BUILD).
 
+## Fast path: prebuilt image, no build host
+
+Releases that include emulator images ship
+`sdk-repo-linux-system-images-arm64.zip` and
+`sdk-repo-linux-system-images-x86_64.zip` assets, each with a `.sha256`
+sidecar and an entry in the release `SHA256SUMS`. Check the
+[Releases page](https://github.com/secondly-com/OpenPhone/releases); if the
+newest release has these assets, you don't need a build host at all.
+
+Pick the arch that matches your workstation (Apple Silicon → `arm64`,
+Intel/x86_64 → `x86_64`), then download, verify, and install in one step:
+
+```bash
+./scripts/lab/install-emulator-image.sh \
+  --arch arm64 \
+  --zip https://github.com/secondly-com/OpenPhone/releases/download/<tag>/sdk-repo-linux-system-images-arm64.zip
+```
+
+The installer fetches the `.sha256` sidecar automatically and refuses to
+install a remote image it cannot verify. To check an already-downloaded zip
+against the release checksums yourself:
+
+```bash
+./scripts/verify-prebuilt-emulator-image.sh \
+  --zip sdk-repo-linux-system-images-arm64.zip \
+  --sha256 SHA256SUMS
+```
+
+Then skip straight to [Create the AVD](#4-create-the-avd) below. If the
+latest release has no emulator image assets yet, continue with the build
+path.
+
+## Build path
+
 > **Minimum build-host specs: 64 GB RAM, ~700 GB fast disk, x86_64 Linux.**
 > The build host is the machine that produces the image, not the one that
-> runs the emulator. If no machine you have meets the bar, see the
+> runs the emulator. If no machine you have meets the bar, use the prebuilt
+> fast path above, or see the
 > [no-build contribution path](/docs/contributing/no-build) — schemas,
 > broker, integrations, protocol, and docs work needs no Android build.
 

@@ -38,6 +38,10 @@ A device preview release may additionally include:
 
 - OTA ZIP.
 - SHA-256 checksum.
+- Prebuilt emulator system images
+  (`sdk-repo-linux-system-images-<arch>.zip` for `arm64` and `x86_64`), each
+  with a `.sha256` sidecar, so contributors can boot OpenPhone without an
+  Android build host.
 - Supported device/codename.
 - Required base firmware or security patch level.
 - Flashing and wipe instructions.
@@ -92,6 +96,11 @@ Device artifact, when published:
   `scripts/prepare-release-signing.sh`.
 - Release target-files and OTA signing is run with
   `scripts/sign-release-ota.sh` in the private build environment.
+- Emulator system images, when published, are staged with
+  `scripts/stage-emulator-images.sh` before the manifest is generated, so
+  they are covered by `SHA256SUMS` and `ARTIFACTS.md`.
+  `scripts/verify-prebuilt-emulator-image.sh` must pass for each staged
+  image zip; `scripts/validate-release-artifacts.sh` runs it automatically.
 - `scripts/generate-release-manifest.sh <version> <artifact-dir>` has produced
   `SHA256SUMS` and `ARTIFACTS.md` for the release artifact directory.
 - `scripts/generate-ota-feed.sh` has produced an updater feed JSON when the
@@ -217,9 +226,18 @@ workflow requires:
 
 The workflow validates the repository, confirms the release-notes file exists,
 authenticates to GCP with Workload Identity Federation, creates a disposable GCP
-release lab VM, builds and stages the OTA there, runs the required emulator
-gate, generates `SHA256SUMS` and `ARTIFACTS.md`, validates the staged directory,
-and publishes the GitHub Release with those assets.
+release lab VM, builds and stages the OTA there, builds and stages the prebuilt
+emulator system images (`OPENPHONE_EMULATOR_IMAGE_ARCHS`, default
+`arm64 x86_64`; set the repository variable to `""` to publish no images), runs
+the required emulator gate, generates `SHA256SUMS` and `ARTIFACTS.md`, validates
+the staged directory, and publishes the GitHub Release with those assets.
+
+The emulator gate boots the x86_64 image on the release lab VM. The arm64
+image cannot boot there (x86 host), so it is structurally verified by
+`scripts/verify-prebuilt-emulator-image.sh` at staging and validation time
+and boot-validated on Apple Silicon hosts. GitHub rejects release assets
+larger than 2 GiB; `scripts/stage-emulator-images.sh` fails early if an
+image zip crosses that limit.
 
 Before dispatching a release:
 
